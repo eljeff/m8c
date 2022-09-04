@@ -4,10 +4,11 @@
 // Contains portions of code from libserialport's examples released to the
 // public domain
 
-#include <SDL2/SDL_log.h>
+#include <SDL_log.h>
 #include <libserialport.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "serial.h"
 
@@ -30,13 +31,48 @@ static int detect_m8_serial_device(struct sp_port *port) {
   return 0;
 }
 
-struct sp_port *init_serial() {
+// Checks for connected devices and whether the specified device still exists
+int check_serial_port(struct sp_port *m8_port) {
+
+  int device_found = 0;
+
+  /* A pointer to a null-terminated array of pointers to
+   * struct sp_port, which will contain the ports found.*/
+  struct sp_port **port_list;
+
+  /* Call sp_list_ports() to get the ports. The port_list
+   * pointer will be updated to refer to the array created. */
+  enum sp_return result = sp_list_ports(&port_list);
+
+  if (result != SP_OK) {
+    SDL_LogError(SDL_LOG_CATEGORY_SYSTEM, "sp_list_ports() failed!\n");
+    abort();
+  }
+
+  /* Iterate through the ports. When port_list[i] is NULL
+   * this indicates the end of the list. */
+  for (int i = 0; port_list[i] != NULL; i++) {
+    struct sp_port *port = port_list[i];
+
+    if (detect_m8_serial_device(port)) {
+      if (strcmp(sp_get_port_name(port), sp_get_port_name(m8_port)) == 0)
+        device_found = 1;
+    }
+  }
+
+  sp_free_port_list(port_list);
+  return device_found;
+
+}
+
+struct sp_port *init_serial(int verbose) {
   /* A pointer to a null-terminated array of pointers to
    * struct sp_port, which will contain the ports found.*/
   struct sp_port *m8_port = NULL;
   struct sp_port **port_list;
 
-  SDL_Log("Looking for USB serial devices.\n");
+  if (verbose)
+    SDL_Log("Looking for USB serial devices.\n");
 
   /* Call sp_list_ports() to get the ports. The port_list
    * pointer will be updated to refer to the array created. */
@@ -61,29 +97,36 @@ struct sp_port *init_serial() {
   sp_free_port_list(port_list);
 
   if (m8_port != NULL) {
-      // Open the serial port and configure it
-      SDL_Log("Opening port.\n");
-      enum sp_return result;
+    // Open the serial port and configure it
+    SDL_Log("Opening port.\n");
+    enum sp_return result;
 
-      result = sp_open(m8_port, SP_MODE_READ_WRITE);
-      if (check(result) != SP_OK) return NULL;
-      
-      result = sp_set_baudrate(m8_port, 115200);
-      if (check(result) != SP_OK) return NULL;
-      
-      result = sp_set_bits(m8_port, 8);
-      if (check(result) != SP_OK) return NULL;
-      
-      result = sp_set_parity(m8_port, SP_PARITY_NONE);
-      if (check(result) != SP_OK) return NULL;
-      
-      result = sp_set_stopbits(m8_port, 1);
-      if (check(result) != SP_OK) return NULL;
-      
-      result = sp_set_flowcontrol(m8_port, SP_FLOWCONTROL_NONE);
-      if (check(result) != SP_OK) return NULL;
+    result = sp_open(m8_port, SP_MODE_READ_WRITE);
+    if (check(result) != SP_OK)
+      return NULL;
+
+    result = sp_set_baudrate(m8_port, 115200);
+    if (check(result) != SP_OK)
+      return NULL;
+
+    result = sp_set_bits(m8_port, 8);
+    if (check(result) != SP_OK)
+      return NULL;
+
+    result = sp_set_parity(m8_port, SP_PARITY_NONE);
+    if (check(result) != SP_OK)
+      return NULL;
+
+    result = sp_set_stopbits(m8_port, 1);
+    if (check(result) != SP_OK)
+      return NULL;
+
+    result = sp_set_flowcontrol(m8_port, SP_FLOWCONTROL_NONE);
+    if (check(result) != SP_OK)
+      return NULL;
   } else {
-    SDL_LogCritical(SDL_LOG_CATEGORY_SYSTEM, "Cannot find a M8.\n");
+    if (verbose)
+      SDL_LogCritical(SDL_LOG_CATEGORY_SYSTEM, "Cannot find a M8.\n");
   }
 
   return (m8_port);
@@ -100,18 +143,20 @@ static int check(enum sp_return result) {
     break;
   case SP_ERR_FAIL:
     error_message = sp_last_error_message();
-    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error: Failed: %s\n", error_message);
+    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error: Failed: %s\n",
+                 error_message);
     sp_free_error_message(error_message);
     break;
   case SP_ERR_SUPP:
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error: Not supported.\n");
     break;
   case SP_ERR_MEM:
-    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Error: Couldn't allocate memory.\n");
+    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                 "Error: Couldn't allocate memory.\n");
     break;
   case SP_OK:
   default:
-      break;
+    break;
   }
   return result;
 }

@@ -1,7 +1,7 @@
 // Copyright 2021 Jonne Kokkonen
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
-#include <SDL2/SDL_log.h>
+#include <SDL_log.h>
 
 #include "command.h"
 #include "render.h"
@@ -134,7 +134,7 @@ int process_command(uint8_t *data, uint32_t size) {
 
     SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Invalid packet\n");
     dump_packet(size, recv_buf);
-    return 1;
+    return 0;
     break;
   }
 }

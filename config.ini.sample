@@ -1,6 +1,19 @@
+; edit this file to change m8c defaults
+; this file is re-written every time it is read,
+; so do not expect comments or commented out values to survive!
+; valid parameter changes will be written back and persisted though.
+
 [graphics]
 ; set this to true to have m8c start fullscreen
 fullscreen=false
+; set this to false to run m8c in software rendering mode (may be useful for Raspberry Pi)
+use_gpu=true
+; the delay amount in ms in the main loop, decrease value for faster operation, increase value if too much cpu usage
+idle_ms = 10
+; show a spinning cube if device is not inserted
+wait_for_device = true
+; number of zero-byte attempts to disconnect if wait_for_device = false (128 = about 2 sec for default idle_ms)
+wait_packets = 128
 
 [keyboard]
 ; these need to be the decimal value of the SDL scancodes.
@@ -31,6 +44,8 @@ gamepad_select=4
 gamepad_start=6
 gamepad_opt=1
 gamepad_edit=0
+gamepad_quit=8
+gamepad_reset=7
 
 gamepad_analog_threshold=32766 ;the threshold for analog sticks to trigger cursor movement (working values: 1-32766)
 gamepad_analog_invert=false ;NOT IMPLEMENTED YET: invert up/down and left/right axis (true/false)

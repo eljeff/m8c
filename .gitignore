@@ -1,7 +1,11 @@
+*.dylib
+*.a
 *.o
 *.exe
+.DS_Store
 m8c
 .vscode
+.cache/
 font.c
 build/
 compile_commands.json

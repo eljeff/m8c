@@ -32,8 +32,11 @@ typedef enum special_messages_t {
 typedef struct input_msg_s {
   input_type_t type;
   uint8_t value;
+  uint8_t value2;
+  uint32_t eventType;
 } input_msg_s;
 
+int initialize_game_controllers();
 void close_game_controllers();
 input_msg_s get_input_msg();
 

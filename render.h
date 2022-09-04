@@ -6,7 +6,7 @@
 
 #include "command.h"
 
-int initialize_sdl();
+int initialize_sdl(int init_fullscreen, int init_use_gpu);
 void close_renderer();
 
 int process_queues(struct command_queues *queues);
@@ -16,6 +16,10 @@ int draw_character(struct draw_character_command *command);
 
 void render_screen();
 void toggle_fullscreen();
-void display_keyjazz_overlay(uint8_t show, uint8_t base_octave);
+void display_keyjazz_overlay(uint8_t show, uint8_t base_octave, uint8_t velocity);
+
+void screensaver_init();
+void screensaver_draw();
+void screensaver_destroy();
 
 #endif

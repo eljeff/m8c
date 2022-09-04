@@ -1,7 +1,7 @@
 // Copyright 2021 Jonne Kokkonen
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include <stdio.h>
 
 #include "config.h"
@@ -27,6 +27,7 @@ enum keycodes {
 
 uint8_t keyjazz_enabled = 0;
 uint8_t keyjazz_base_octave = 2;
+uint8_t keyjazz_velocity = 0x64;
 
 static uint8_t keycode = 0; // value of the pressed key
 static int num_joysticks = 0;
@@ -48,23 +49,18 @@ int initialize_game_controllers() {
   SDL_Delay(
       10); // Some controllers like XBone wired need a little while to get ready
 
-  // Open all available game controllers
-  for (int i = 0; i < num_joysticks; i++) {
-    if (!SDL_IsGameController(i))
-      continue;
-    if (controller_index >= MAX_CONTROLLERS)
-      break;
-    game_controllers[controller_index] = SDL_GameControllerOpen(i);
-    SDL_Log("Controller %d: %s", controller_index + 1,
-            SDL_GameControllerName(game_controllers[controller_index]));
-    controller_index++;
-  }
-
   // Try to load the game controller database file
   char db_filename[1024] = {0};
-  sprintf(db_filename, "%sgamecontrollerdb.txt", SDL_GetPrefPath("", "m8c"));
+  snprintf(db_filename, sizeof(db_filename), "%sgamecontrollerdb.txt",
+           SDL_GetPrefPath("", "m8c"));
   SDL_Log("Trying to open game controller database from %s", db_filename);
-  SDL_RWops *db_rw = SDL_RWFromFile(db_filename, "rb");
+  SDL_RWops* db_rw = SDL_RWFromFile(db_filename, "rb");
+  if (db_rw == NULL) {
+    snprintf(db_filename, sizeof(db_filename), "%sgamecontrollerdb.txt",
+    SDL_GetBasePath());
+    SDL_Log("Trying to open game controller database from %s", db_filename);
+    db_rw = SDL_RWFromFile(db_filename, "rb");
+  }
 
   if (db_rw != NULL) {
     int mappings = SDL_GameControllerAddMappingsFromRW(db_rw, 1);
@@ -76,6 +72,18 @@ int initialize_game_controllers() {
   } else {
     SDL_LogError(SDL_LOG_CATEGORY_INPUT,
                  "Unable to open game controller database file.");
+  }
+
+  // Open all available game controllers
+  for (int i = 0; i < num_joysticks; i++) {
+    if (!SDL_IsGameController(i))
+      continue;
+    if (controller_index >= MAX_CONTROLLERS)
+      break;
+    game_controllers[controller_index] = SDL_GameControllerOpen(i);
+    SDL_Log("Controller %d: %s", controller_index + 1,
+            SDL_GameControllerName(game_controllers[controller_index]));
+    controller_index++;
   }
 
   return controller_index;
@@ -91,7 +99,7 @@ void close_game_controllers() {
 }
 
 static input_msg_s handle_keyjazz(SDL_Event *event, uint8_t keyvalue) {
-  input_msg_s key = {keyjazz, keyvalue};
+  input_msg_s key = {keyjazz, keyvalue, keyjazz_velocity, event->type};
   switch (event->key.keysym.scancode) {
   case SDL_SCANCODE_Z:
     key.value = keyjazz_base_octave * 12;
@@ -184,14 +192,40 @@ static input_msg_s handle_keyjazz(SDL_Event *event, uint8_t keyvalue) {
     key.type = normal;
     if (event->type == SDL_KEYDOWN && keyjazz_base_octave > 0) {
       keyjazz_base_octave--;
-      display_keyjazz_overlay(1, keyjazz_base_octave);
+      display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
     }
     break;
   case SDL_SCANCODE_KP_MULTIPLY:
     key.type = normal;
     if (event->type == SDL_KEYDOWN && keyjazz_base_octave < 8) {
       keyjazz_base_octave++;
-      display_keyjazz_overlay(1, keyjazz_base_octave);
+      display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
+    }
+    break;
+  case SDL_SCANCODE_KP_MINUS:
+    key.type = normal;
+    if (event->type == SDL_KEYDOWN) {
+      if ((event->key.keysym.mod & KMOD_ALT) > 0) {
+        if (keyjazz_velocity > 1)
+          keyjazz_velocity -= 1;
+      } else {
+        if (keyjazz_velocity > 0x10)
+          keyjazz_velocity -= 0x10;
+      }
+      display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
+    }
+    break;
+  case SDL_SCANCODE_KP_PLUS:
+    key.type = normal;
+    if (event->type == SDL_KEYDOWN) {
+      if ((event->key.keysym.mod & KMOD_ALT) > 0) {
+        if (keyjazz_velocity < 0x7F)
+          keyjazz_velocity += 1;
+      } else {
+        if (keyjazz_velocity < 0x6F)
+          keyjazz_velocity += 0x10;
+      }
+      display_keyjazz_overlay(1, keyjazz_base_octave, keyjazz_velocity);
     }
     break;
   default:
@@ -329,6 +363,18 @@ void handle_sdl_events(config_params_s *conf) {
     prev_key_analog = key_analog;
   }
 
+  // Read special case game controller buttons quit and reset
+  for (int gc = 0; gc < num_joysticks; gc++) {
+    if (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_quit) && 
+        (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_select) || 
+        SDL_GameControllerGetAxis(game_controllers[gc], conf->gamepad_analog_axis_select)))
+      key = (input_msg_s){special, msg_quit};
+    else if (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_reset) && 
+            (SDL_GameControllerGetButton(game_controllers[gc], conf->gamepad_select) || 
+              SDL_GameControllerGetAxis(game_controllers[gc], conf->gamepad_analog_axis_select)))
+      key = (input_msg_s){special, msg_reset_display};
+  }
+
   SDL_PollEvent(&event);
 
   switch (event.type) {
@@ -342,6 +388,14 @@ void handle_sdl_events(config_params_s *conf) {
   // Handle SDL quit events (for example, window close)
   case SDL_QUIT:
     key = (input_msg_s){special, msg_quit};
+    break;
+
+  case SDL_WINDOWEVENT:
+    if (event.window.event == SDL_WINDOWEVENT_RESIZED)
+    {
+      SDL_Log("Resizing window...");
+      key = (input_msg_s){special, msg_reset_display};      
+    }
     break;
 
   // Keyboard events. Special events are handled within SDL_KEYDOWN.
@@ -358,11 +412,12 @@ void handle_sdl_events(config_params_s *conf) {
     if (event.key.keysym.sym == SDLK_F4 &&
         (event.key.keysym.mod & KMOD_ALT) > 0) {
       key = (input_msg_s){special, msg_quit};
+      break;
     }
 
     // ESC = toggle keyjazz
     if (event.key.keysym.sym == SDLK_ESCAPE) {
-      display_keyjazz_overlay(toggle_input_keyjazz(), keyjazz_base_octave);
+      display_keyjazz_overlay(toggle_input_keyjazz(), keyjazz_base_octave, keyjazz_velocity);
     }
 
   // Normal keyboard inputs
