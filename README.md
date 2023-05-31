@@ -1,10 +1,14 @@
 # m8c
 
-m8c is a client for Dirtywave M8 tracker's headless mode. The application should be cross-platform ready and can be built in Linux, Windows (with MSYS2/MINGW64) and Mac OS.
+# Introduction
 
-Please note that routing the headless M8 USB audio isn't in the scope of this program -- if this is needed, it can be achieved with tools like Pipewire, Pulseaudio, Jack w/ alsa\_in and alsa\_out just to name a few. The file AUDIOGUIDE.md contains some examples for routing the audio.
+The [Dirtywave M8 Tracker](https://dirtywave.com/products/m8-tracker) is a portable sequencer and synthesizer, featuring 8 tracks of assignable instruments such as FM, waveform synthesis, virtual analog, sample playback, and MIDI output. It is powered by a [Teensy](https://www.pjrc.com/teensy/) micro-controller and inspired by the Gameboy tracker [Little Sound DJ](https://www.littlesounddj.com/lsd/index.php).
 
-If you want to route audio with the headless client you could try https://github.com/booss/rm8 which is a great native client with audio support (among other user features)!
+While Dirtywave makes new batches of units available on a regular basis, M8 is sometimes sold out due to the worldwide chip shortage and high demand of the unit. To fill this gap and and to allow users to freely test this wonderful tracker, [Timothy Lamb](https://github.com/trash80) was kind enough to make the [M8 Headless](https://github.com/Dirtywave/M8HeadlessFirmware) available to everyone.
+
+If you like the M8 and you gel with the tracker workflow, please support [Dirtywave](https://dirtywave.com/) by purchasing the actual unit. You can check its availability [here](https://dirtywave.com/products/m8-tracker). Meanwhile, you can also subscribe to Timothy Lamb's [Patreon](https://www.patreon.com/trash80).
+
+*m8c* is a client for Dirtywave M8 tracker's headless mode. The application should be cross-platform ready and can be built in Linux, Windows (with MSYS2/MINGW64) and Mac OS.
 
 Many thanks to:
 
@@ -78,10 +82,10 @@ Keys for controlling the progam:
 * Down arrow = down
 * Left arrow = left
 * Right arrow = right
-* a / left shift = select
-* s / space = start
-* z / left alt = opt
-* x / left ctrl = edit
+* z / left shift = shift
+* x / space = play
+* a / left alt = opt
+* s / left ctrl = edit
 
 Additional controls:
 * Alt + enter = toggle full screen / windowed
@@ -103,9 +107,14 @@ When keyjazz is active, regular a/s/z/x keys are disabled. The base octave can b
 
 The program uses SDL's game controller system, which should make it work automagically with most gamepads. On startup, the program tries to load a SDL game controller database named gamecontrollerdb.txt from the same directory as the config file. If your joypad doesn't work out of the box, you might need to create custom bindings to this file, for example with [SDL2 Gamepad Tool](https://generalarcade.com/gamepadtool/).
 
+## Audio
+
+Experimental audio routing support can be enabled by setting the config value `"audio_enabled"` to `"true"`. The audio buffer size can also be tweaked from the config file for possible lower latencies.
+If the right audio device is not picked up by default, you can use a specific audio device by using `"audio_output_device"` config parameter.
+
 ## Config
 
-Keyboard and game controller bindings can be configured via `config.ini`.
+Application settings and keyboard/game controller bindings can be configured via `config.ini`.
 
 If not found, the file will be created in one of these locations:
 * Windows: `C:\Users\<username>\AppData\Roaming\m8c\config.ini`
