@@ -27,7 +27,7 @@ jobs:
       shell: bash
 
     - name: 'Checkout'
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -55,10 +55,10 @@ jobs:
           cp /mingw64/bin/SDL2.dll .
           cp /mingw64/bin/libserialport-0.dll .
         fi
-        unix2dos README.md config.ini.sample LICENSE AUDIOGUIDE.md
+        unix2dos README.md LICENSE AUDIOGUIDE.md
     - name: 'Upload artifact (win32)'
       if: matrix.win == 'win32'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: m8c-${{ env.NOW }}-${{ matrix.win }}
         path: |
@@ -71,10 +71,9 @@ jobs:
           LICENSE
           README.md
           AUDIOGUIDE.md
-          config.ini.sample
     - name: 'Upload artifact (win64)'
       if: matrix.win == 'win64'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: m8c-${{ env.NOW }}-${{ matrix.win }}
         path: |
@@ -85,7 +84,6 @@ jobs:
           LICENSE
           README.md
           AUDIOGUIDE.md
-          config.ini.sample
 
   build-linux:
     runs-on: ubuntu-latest
@@ -96,7 +94,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --fix-missing build-essential libsdl2-dev libserialport-dev zip
       - name: 'Checkout'
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set current date as env variable
         run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
@@ -105,7 +103,7 @@ jobs:
         run: |
           make
       - name: 'Upload artifact'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: m8c-${{ env.NOW }}-linux
           path: |
@@ -114,7 +112,6 @@ jobs:
             AUDIOGUIDE.md
             m8c
             gamecontrollerdb.txt
-            config.ini.sample
       
   build-macos:
     runs-on: macos-latest
@@ -124,7 +121,7 @@ jobs:
         run: brew install cmake sdl2 libserialport pkg-config
 
       - name: 'Checkout'
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set current date as env variable
         run: echo "NOW=$(date +'%Y-%m-%d')" >> $GITHUB_ENV        
@@ -139,9 +136,9 @@ jobs:
           codesign --deep --force --verify --verbose --timestamp --sign - "$INSTALL_PREFIX/m8c.app" "$INSTALL_PREFIX/m8c.app/Contents/Frameworks/libSDL2-2.0.0.dylib" "$INSTALL_PREFIX/m8c.app/Contents/Frameworks/libserialport.0.dylib"
           cd ..
           cp -r /tmp/m8c.app .
-          zip -r m8c.zip m8c.app LICENSE README.md AUDIOGUIDE.md config.ini.sample gamecontrollerdb.txt
+          zip -r m8c.zip m8c.app LICENSE README.md AUDIOGUIDE.md gamecontrollerdb.txt
       - name: 'Upload artifact'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: m8c-${{ env.NOW }}-macos
           path: m8c.zip           
